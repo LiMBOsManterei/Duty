@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local build caches and diagnostics
+.dotnet-home/
+.nuget-http-cache/
+.tmp/
+build-diag.log

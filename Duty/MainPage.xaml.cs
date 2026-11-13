@@ -1,14 +1,20 @@
-﻿namespace Duty
+using Duty.ViewModels;
+
+namespace Duty;
+
+public partial class MainPage : ContentPage
 {
-    public partial class MainPage : ContentPage
+    private readonly MainViewModel _viewModel;
+
+    public MainPage(MainViewModel viewModel)
     {
-        int count = 0;
+        InitializeComponent();
+        BindingContext = _viewModel = viewModel;
+    }
 
-        public MainPage()
-        {
-            InitializeComponent();
-        }
-
-       
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        _viewModel.InitializeCommand.Execute(null);
     }
 }
