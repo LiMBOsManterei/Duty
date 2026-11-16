@@ -14,7 +14,16 @@ public sealed class ExpenseItemViewModel
         Model = expense;
         Category = ExpenseCategories.Get(expense.CategoryKey);
         EditCommand = new RelayCommand(() => edit(this));
+        FastDeleteCommand = new RelayCommand(() => edit(this));
     }
+    public ExpenseItemViewModel(Expense expense, Action<ExpenseItemViewModel> edit, Action<ExpenseItemViewModel> delete)
+    {
+        Model = expense;
+        Category = ExpenseCategories.Get(expense.CategoryKey);
+        EditCommand = new RelayCommand(() => edit(this));
+        FastDeleteCommand = new RelayCommand(() => delete(this));
+    }
+
 
     public Expense Model { get; }
 
@@ -31,6 +40,8 @@ public sealed class ExpenseItemViewModel
     public string CategoryTitle => Category.Title;
 
     public ICommand EditCommand { get; }
+    
+    public ICommand FastDeleteCommand { get; }
 
     public string AccessibilityDescription =>
         $"{Name}, {FormattedAmount}, категория {CategoryTitle}. Нажмите, чтобы изменить.";

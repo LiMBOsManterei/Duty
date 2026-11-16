@@ -92,6 +92,8 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void AddExpense() => ExpenseEditor.OpenForCreate();
 
+    private CancellationTokenSource? _statusCts;
+
     [RelayCommand]
     private async Task SendDbToFirebase()
     {
@@ -118,7 +120,7 @@ public partial class MainViewModel : ObservableObject
             SyncStatusColor = Color.FromArgb("#34C759"); // Зеленый (iOS/Material Green)
             SyncStatusText = $"Отправлено в {DateTime.Now:HH:mm}";
             IsSyncStatusVisible = true;
-            _ = HideStatusAfterDelayAsync();
+            _ = HideStatusAfterDelayAsync(_statusCts.Token);
         }
         catch (Exception ex)
         {
@@ -139,12 +141,76 @@ public partial class MainViewModel : ObservableObject
 
     }
 
-    private async Task HideStatusAfterDelayAsync()
+    /// <summary>
+    /// Показывает всплывающее уведомление внизу экрана.
+    /// </summary>
+    /// <param name="text">Текст сообщения.</param>
+    /// <param name="isSuccess">true — зеленый фон (успех), false — красный фон (ошибка).</param>
+    private void ShowStatusMessage(string text, bool isSuccess)
     {
-        await Task.Delay(3000);
-        IsSyncStatusVisible = false;
+        // Отменяем предыдущий таймер скрытия, если плашка уже висит на экране
+        _statusCts?.Cancel();
+        _statusCts?.Dispose();
+        _statusCts = new CancellationTokenSource();
+
+        SyncStatusText = text;
+        SyncStatusColor = isSuccess
+            ? Color.FromArgb("#34C759") // Зеленый (успех)
+            : Color.FromArgb("#FF3B30"); // Красный (ошибка)
+
+        IsSyncStatusVisible = true;
+
+        // Запускаем автоматическое скрытие через 3 секунды
+        _ = HideStatusAfterDelayAsync(_statusCts.Token);
     }
 
+    [RelayCommand]
+    public async Task AllDelete()
+    {
+        try
+        {
+           
+            if (_data != null)
+            {
+                int count = _data.Expenses.Count;
+                var d = _data.Clone();
+                if (_data.Expenses != null && _data.Expenses.Count > 0)
+                {
+                    foreach (Expense item in d.Expenses)
+                    {
+                        await DeleteExpenseAsync(item.Id);
+                    }
+
+                    ShowStatusMessage($"Удалено {count} записей", true);
+
+                    return;
+                }
+            }
+
+            ShowStatusMessage("Записи не найдены", false);
+
+        }
+        catch (Exception ex)
+        {
+            ShowStatusMessage($"Ошибка {ex.Message}", false);
+        }
+
+       
+        
+    }
+
+    private async Task HideStatusAfterDelayAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(3000, token);
+            IsSyncStatusVisible = false;
+        }
+        catch (TaskCanceledException)
+        {
+            // Игнорируем отмену, если за это время появилось новое сообщение
+        }
+    }
     [RelayCommand]
     private async Task LoadFireDb()
     {
@@ -171,6 +237,7 @@ public partial class MainViewModel : ObservableObject
 
     private void EditExpense(ExpenseItemViewModel item) => ExpenseEditor.OpenForEdit(item.Model);
 
+    public async void DeleteFast(ExpenseItemViewModel item) => await DeleteExpenseAsync(item.Model.Id);
     private async Task LoadAsync()
     {
         if (_isLoading)
@@ -237,7 +304,7 @@ public partial class MainViewModel : ObservableObject
                      .OrderByDescending(item => item.CreatedAt)
                      .ThenByDescending(item => item.Id))
         {
-            Expenses.Add(new ExpenseItemViewModel(expense, EditExpense));
+            Expenses.Add(new ExpenseItemViewModel(expense, EditExpense, DeleteFast));
         }
 
         OnPropertyChanged(nameof(HasNoExpenses));

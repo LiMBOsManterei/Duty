@@ -10,16 +10,12 @@ public static class ExpenseCategories
 {
     public static IReadOnlyList<ExpenseCategory> All { get; } = new[]
     {
-        new ExpenseCategory("groceries", "Продукты", "\uf07a", "#34C759"),
-        new ExpenseCategory("cafe", "Кафе", "\uf7b6", "#FF9500"),
-        new ExpenseCategory("transport", "Транспорт", "\uf1b9", "#007AFF"),
-        new ExpenseCategory("housing", "Жильё", "\uf015", "#5856D6"),
-        new ExpenseCategory("health", "Здоровье", "\uf21e", "#FF3B30"),
-        new ExpenseCategory("entertainment", "Развлечения", "\uf008", "#FF2D55"),
-        new ExpenseCategory("clothes", "Одежда", "\uf553", "#00C7BE"),
-        new ExpenseCategory("communication", "Связь", "\uf3cd", "#5E5CE6"),
-        new ExpenseCategory("education", "Образование", "\uf19d", "#AF52DE"),
-        new ExpenseCategory("other", "Другое", "\uf141", "#8E8E93"),
+           new ExpenseCategory("groceries", "Продукты",  "\uf07a", "#8E8E93"), // Системный зеленый
+           new ExpenseCategory("ozon",      "Озон",      "\uf06b", "#005BFF"), // Фирменный голубой/синий Ozon (или "#32ADE6" для более светлого голубого)
+           new ExpenseCategory("fuel",      "Топливо",   "\uf52f", "#E5B84B"), // Приглушенный пастельно-желтый / горчичный
+           new ExpenseCategory("cafe",      "Питание",   "\uf805", "#C4A484"), // Теплый светло-коричневый / бежевый
+           new ExpenseCategory("transport", "Транспорт", "\uf0ad", "#8E8E93"), // Системный зеленый, как у продуктов
+           new ExpenseCategory("other",     "Другое",    "\uf141", "#8E8E93"), // Системный серый
     };
 
     public static ExpenseCategory Default => All[^1];
