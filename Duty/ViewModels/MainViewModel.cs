@@ -4,6 +4,8 @@ using CommunityToolkit.Mvvm.Input;
 using Duty.Common;
 using Duty.Models;
 using Duty.Services;
+using Firebase.Database;
+using Firebase.Database.Query;
 
 namespace Duty.ViewModels;
 
@@ -74,6 +76,53 @@ public partial class MainViewModel : ObservableObject
     private void AddExpense() => ExpenseEditor.OpenForCreate();
 
     [RelayCommand]
+    private async Task SendDbToFirebase()
+    {
+        var confirmed = await _dialogs.ConfirmAsync(
+                "Подтверждение",
+                "\n ДА Отправить. (защита от случайных нажатий)",
+                "ДА", "Отмена");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            var firebaseClient = new FirebaseClient("https://dutydb-47b3c-default-rtdb.firebaseio.com/");
+            await firebaseClient.Child("duty_data").PutAsync(_data);
+        }
+        catch (Exception ex)
+        {
+            await _dialogs.ShowAsync(
+                "Не удалось отправить данные в Firebase",
+                ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadFireDb()
+    {
+        try
+        {
+            FirebaseDataService service = new FirebaseDataService(new FirebaseClient("https://dutydb-47b3c-default-rtdb.firebaseio.com/"));
+            DutyData duty = await service.LoadDataAsync();
+            if (duty != null)
+            {
+                _data = duty;
+                ApplyData();
+            }
+        }
+        catch (Exception ex)
+        {
+            await _dialogs.ShowAsync(
+                "Не удалось загрузить данные из Firebase",
+                ex.Message);
+        }
+    }
+
+    [RelayCommand]
     private void EditBalance() => BalanceEditor.Open(TotalBalance);
 
     private void EditExpense(ExpenseItemViewModel item) => ExpenseEditor.OpenForEdit(item.Model);
@@ -94,10 +143,14 @@ public partial class MainViewModel : ObservableObject
             {
                 _data = CreateSeedData();
                 await TrySeedAsync(_data);
+                await SendDbToFirebase();
             }
             else
             {
-                _data = loaded;
+
+                await LoadFireDb();
+
+                return;
             }
 
             ApplyData();

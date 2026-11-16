@@ -15,6 +15,7 @@ public sealed class DialogService : IDialogService
             }
         });
 
+
     public Task<bool> ConfirmAsync(string title, string message, string accept, string cancel) =>
         MainThread.InvokeOnMainThreadAsync(async () =>
         {

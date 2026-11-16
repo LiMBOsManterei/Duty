@@ -44,6 +44,7 @@ namespace Duty
             builder.Services.AddTransient<MainViewModel>();
             builder.Services.AddTransient<MainPage>();
             builder.Services.AddSingleton<AppShell>();
+            builder.Services.AddSingleton(new Firebase.Database.FirebaseClient("https://dutydb-47b3c-default-rtdb.firebaseio.com/"));
 
 #if DEBUG
             builder.Logging.AddDebug();

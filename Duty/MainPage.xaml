@@ -106,6 +106,8 @@
         </Style>
     </ContentPage.Resources>
 
+   
+
     <Grid>
 
         <!-- Основной скролл страницы: хедер + сетка трат -->
@@ -135,12 +137,24 @@
                                TextColor="#1A1A1A"
                                VerticalOptions="Center" />
 
-                        <Button Grid.Column="1"
+                        <Grid Grid.Column="1" Grid.Row="0" ColumnDefinitions="*, Auto">
+
+                            <Button Grid.Column="0"
                                 Text="&#xf021;"
                                 Style="{StaticResource RefreshButton}"
                                 Command="{Binding RefreshCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 SemanticProperties.Description="Обновить данные" />
+                            <Button Grid.Column="1"
+                                Text="&#xe09a;"
+                                Style="{StaticResource RefreshButton}"
+                                Command="{Binding SendDbToFirebaseCommand}"
+                                IsEnabled="{Binding IsNotBusy}"
+                                SemanticProperties.Description="отправить данные" />
+
+                        </Grid>
+                        
+                        
                     </Grid>
 
                     <!-- ОБЩИЙ БАЛАНС -->
