@@ -129,17 +129,20 @@
             <CollectionView.Header>
                 <VerticalStackLayout Padding="0,40,0,16" Spacing="24">
 
-                    <!-- ШАПКА: Итого + Обновить -->
+                    <!-- ШАПКА: Итого + Обновить + спинер + отпровить -->
                     <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
                         <Label Text="Итого"
-                               FontSize="32"
+                               
+                               FontSize="32"    
                                FontAttributes="Bold"
                                TextColor="#1A1A1A"
                                VerticalOptions="Center" />
 
-                        <Grid Grid.Column="1" Grid.Row="0" ColumnDefinitions="*, Auto">
-
-                            <Button Grid.Column="0"
+                        
+                        
+                        <Grid Grid.Column="1" Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto">
+                            
+                                <Button Grid.Column="0"
                                 Text="&#xf021;"
                                 Style="{StaticResource RefreshButton}"
                                 Command="{Binding RefreshCommand}"
@@ -151,6 +154,16 @@
                                 Command="{Binding SendDbToFirebaseCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 SemanticProperties.Description="отправить данные" />
+
+                            <ActivityIndicator Grid.Column="2"
+                                 IsRunning="{Binding IsSyncing}"
+                                 IsVisible="{Binding IsSyncing}"
+                                 Color="#1A1A1A"
+                                 WidthRequest="24"
+                                 HeightRequest="24"
+                                 VerticalOptions="Center"
+                                 Margin="0,0,8,0" />
+                            
 
                         </Grid>
                         
@@ -229,7 +242,9 @@
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="vm:ExpenseItemViewModel">
-                    <Border BackgroundColor="#F0F1F5"
+
+                    
+                        <Border BackgroundColor="#F0F1F5"
                             StrokeThickness="0"
                             StrokeShape="RoundRectangle 18"
                             Padding="16"
@@ -238,10 +253,46 @@
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding EditCommand}" />
                         </Border.GestureRecognizers>
-
+                        
                         <VerticalStackLayout Spacing="12">
                             <!-- Белый круг с иконкой -->
-                            <Border BackgroundColor="White"
+
+                            <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
+                                <Border Grid.Column="0"
+                            BackgroundColor="White"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 16"
+                            WidthRequest="32"
+                            HeightRequest="32"
+                            HorizontalOptions="Start">
+                                    <Label Text="{Binding Icon}"
+                               FontFamily="FontAwesome"
+                               FontSize="14"
+                               TextColor="{Binding IconColor}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                                </Border>
+
+                                <!-- Кнопка удаления траты -->
+                                <Button Grid.Column="1"
+                            Text="&#xf410;"
+                            FontFamily="FontAwesome"
+                            FontSize="25"
+                            TextColor="DarkRed"
+                            BackgroundColor="Transparent"
+                            Padding="0"
+                            MinimumWidthRequest="0"
+                            MinimumHeightRequest="0"
+                            WidthRequest="28"
+                            HeightRequest="28"
+                            HorizontalOptions="End"
+                            VerticalOptions="Center"
+                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MainViewModel}}, Path=DeleteExpenseCommand}"
+                            CommandParameter="{Binding .}" />
+                            </Grid>
+
+
+                            <!--<Border BackgroundColor="White"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 16"
                                     WidthRequest="32"
@@ -253,7 +304,7 @@
                                        TextColor="{Binding IconColor}"
                                        HorizontalOptions="Center"
                                        VerticalOptions="Center" />
-                            </Border>
+                            </Border>-->
 
                             <Label Text="{Binding Name}"
                                    FontSize="12"
@@ -269,6 +320,7 @@
                                    LineBreakMode="TailTruncation" />
                         </VerticalStackLayout>
                     </Border>
+                    
                 </DataTemplate>
             </CollectionView.ItemTemplate>
 
@@ -384,6 +436,7 @@
                                                 <TapGestureRecognizer Command="{Binding SelectCommand}" />
                                             </Border.GestureRecognizers>
                                             <HorizontalStackLayout Spacing="6">
+                                                
                                                 <Label Text="{Binding Icon}"
                                                        FontFamily="FontAwesome"
                                                        FontSize="12"
@@ -513,6 +566,26 @@
                        HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
         </Grid>
-
+        <Border IsVisible="{Binding IsSyncStatusVisible}"
+        BackgroundColor="{Binding SyncStatusColor}"
+        StrokeThickness="0"
+        StrokeShape="RoundRectangle 20"
+        Padding="16,10"
+        HorizontalOptions="Center"
+        VerticalOptions="End"
+        Margin="0,0,0,32">
+            <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                <Label Text="&#xf00c;"
+               FontFamily="FontAwesome"
+               TextColor="White"
+               FontSize="14"
+               VerticalOptions="Center" />
+                <Label Text="{Binding SyncStatusText}"
+               TextColor="White"
+               FontSize="14"
+               FontAttributes="Bold"
+               VerticalOptions="Center" />
+            </HorizontalStackLayout>
+        </Border>
     </Grid>
 </ContentPage>

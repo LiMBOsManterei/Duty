@@ -55,6 +55,23 @@ public partial class MainViewModel : ObservableObject
 
     public string StoragePath => _dataService.StoragePath;
 
+    // Индикатор активной отправки (крутит спиннер и блокирует повторное нажатие)
+    [ObservableProperty]
+    private bool _isSyncing;
+
+    // Текст статуса (например: "Сохранено в облако" или "Ошибка отправки")
+    [ObservableProperty]
+    private string _syncStatusText = string.Empty;
+
+    // Видимость плашки со статусом
+    [ObservableProperty]
+    private bool _isSyncStatusVisible;
+
+    // Цвет плашки (зеленый при успехе, красный при ошибке)
+    [ObservableProperty]
+    private Color _syncStatusColor = Color.FromArgb("#34C759");
+
+
     /// <summary>Вызывается страницей один раз при появлении.</summary>
     [RelayCommand]
     private async Task InitializeAsync()
@@ -88,17 +105,44 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
+
+        if (IsSyncing) return;
         try
         {
+            IsSyncing = true;
+            IsSyncStatusVisible = false;
+
             var firebaseClient = new FirebaseClient("https://dutydb-47b3c-default-rtdb.firebaseio.com/");
             await firebaseClient.Child("duty_data").PutAsync(_data);
+
+            SyncStatusColor = Color.FromArgb("#34C759"); // Зеленый (iOS/Material Green)
+            SyncStatusText = $"Отправлено в {DateTime.Now:HH:mm}";
+            IsSyncStatusVisible = true;
+            _ = HideStatusAfterDelayAsync();
         }
         catch (Exception ex)
         {
-            await _dialogs.ShowAsync(
-                "Не удалось отправить данные в Firebase",
-                ex.Message);
+            // Показываем метку об ошибке, если нет интернета или неверный URL
+            SyncStatusColor = Color.FromArgb("#FF3B30"); // Ваш цвет Danger
+            SyncStatusText = $"Ошибка отправки, {ex.Message}" ;
+            IsSyncStatusVisible = true;
+
+            //await _dialogs.ShowAsync(
+            //    "Не удалось отправить данные в Firebase",
+            //    ex.Message);
         }
+        finally
+        {
+            IsSyncing = false;
+        }
+
+
+    }
+
+    private async Task HideStatusAfterDelayAsync()
+    {
+        await Task.Delay(3000);
+        IsSyncStatusVisible = false;
     }
 
     [RelayCommand]
