@@ -5,7 +5,7 @@ using Duty.Models;
 namespace Duty.Services;
 
 /// <summary>
-/// JSON-хранилище в AppDataDirectory. Пишет атомарно через временный файл,
+/// JSON-хранилище локального снимка. Пишет атомарно через временный файл,
 /// держит резервную копию и карантинит повреждённый JSON.
 /// </summary>
 public sealed class JsonDutyDataService : IDutyDataService
@@ -24,25 +24,16 @@ public sealed class JsonDutyDataService : IDutyDataService
 
     public JsonDutyDataService(string? filePath = null)
     {
-        _filePath = string.IsNullOrWhiteSpace(filePath) ? GetDefaultPath() : filePath;
-    }
-
-    private static string GetDefaultPath()
-    {
-#if WINDOWS
-        // На Windows unpackaged-приложение не имеет Package identity, поэтому
-        // FileSystem.AppDataDirectory ведёт себя непредсказуемо. Пишем в %LOCALAPPDATA%\Duty.
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return Path.Combine(localAppData, "Duty", "duty-data.json");
-#else
-        return Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "duty-data.json");
-#endif
+        _filePath = string.IsNullOrWhiteSpace(filePath) ? LocalStoragePaths.DataFile : filePath;
     }
 
     public string StoragePath => _filePath;
 
     private string BackupPath => _filePath + ".bak";
 
+    /// <summary>
+    /// Читает локальный снимок данных. Возвращает null, если файла ещё нет.
+    /// </summary>
     public async Task<DutyData?> LoadAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -58,7 +49,7 @@ public sealed class JsonDutyDataService : IDutyDataService
                 var data = await ReadAsync(_filePath, cancellationToken).ConfigureAwait(false)
                            ?? throw new DataStorageException("Файл данных пуст.");
 
-                Normalize(data);
+                data.EnsureIntegrity();
                 return data;
             }
             catch (JsonException ex)
@@ -67,7 +58,7 @@ public sealed class JsonDutyDataService : IDutyDataService
                 var backup = await TryReadBackupAsync(cancellationToken).ConfigureAwait(false);
                 if (backup is not null)
                 {
-                    Normalize(backup);
+                    backup.EnsureIntegrity();
                     return backup;
                 }
 
@@ -184,39 +175,5 @@ public sealed class JsonDutyDataService : IDutyDataService
         }
 
         return target;
-    }
-
-    /// <summary>Приводит прочитанные данные к ожидаемому виду.</summary>
-    private static void Normalize(DutyData data)
-    {
-        data.SchemaVersion = DutyData.CurrentSchemaVersion;
-        data.Expenses ??= new List<Expense>();
-
-        //if (data.TotalBalance < 0)
-        //{
-        //    data.TotalBalance = 0;
-        //}
-
-        var ids = new HashSet<Guid>();
-        foreach (var expense in data.Expenses)
-        {
-            if (expense.Id == Guid.Empty || !ids.Add(expense.Id))
-            {
-                expense.Id = Guid.NewGuid();
-                ids.Add(expense.Id);
-            }
-
-            expense.Name = string.IsNullOrWhiteSpace(expense.Name) ? "Без названия" : expense.Name.Trim();
-            if (expense.Amount < 0)
-            {
-                expense.Amount = Math.Abs(expense.Amount);
-            }
-
-            expense.CategoryKey = ExpenseCategories.Get(expense.CategoryKey).Key;
-            if (expense.CreatedAt == default)
-            {
-                expense.CreatedAt = DateTimeOffset.Now;
-            }
-        }
     }
 }

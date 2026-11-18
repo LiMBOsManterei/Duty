@@ -1,43 +1,78 @@
-﻿using Firebase.Database;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Firebase.Database.Query;
 using Duty.Models;
-namespace Duty.Services
+using Firebase.Database;
+using Firebase.Database.Query;
+
+namespace Duty.Services;
+
+/// <summary>
+/// Клиент Firebase Realtime Database. Соединение создаётся под конкретный профиль,
+/// каждый запрос ограничен таймаутом, чтобы UI не ждал сеть бесконечно.
+/// </summary>
+public sealed class FirebaseDataService : ICloudDataService
 {
-  /// <summary>
-  /// Модель подключения к удаленной бд. Без возможности авторизации.
-  /// </summary>
-    public class FirebaseDataService
+    private const string RootNode = "duty_data";
+
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(8);
+
+    public async Task<DutyData?> LoadAsync(DbConnectionProfile profile, CancellationToken cancellationToken = default)
     {
-        private readonly FirebaseClient _firebase;
-        private const string RootNode = "duty_data";
+        var url = DbConnectionProfile.NormalizeUrl(profile.ConnectionString)
+                  ?? throw new CloudDataException("Некорректный адрес базы данных. Проверьте подключение.");
 
-        public FirebaseDataService(FirebaseClient firebase)
+        using var client = new FirebaseClient(url);
+        try
         {
-            _firebase = firebase;
-        }
-
-        // 1. Чтение всего состояния для всех пользователей
-        public async Task<DutyData> LoadDataAsync()
-        {
-            var data = await _firebase
+            var data = await client
                 .Child(RootNode)
-                .OnceSingleAsync<DutyData>();
+                .OnceSingleAsync<DutyData>(DefaultTimeout)
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
 
-            return data ?? new DutyData();
+            return data;
         }
-
-        // 2. Полная перезапись состояния (вызывается только в админе)
-        public async Task SaveDataAsync(DutyData dataToSave)
+        catch (OperationCanceledException)
         {
-            dataToSave.UpdatedAt = DateTimeOffset.Now;
-
-            await _firebase
-                .Child(RootNode)
-                .PutAsync(dataToSave);
+            throw;
         }
+        catch (TimeoutException ex)
+        {
+            throw new CloudDataException("Облачная база не ответила вовремя.", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new CloudDataException("Не удалось прочитать данные из облака.", ex);
+        }
+    }
 
+    public async Task SaveAsync(DbConnectionProfile profile, DutyData data, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+
+        var url = DbConnectionProfile.NormalizeUrl(profile.ConnectionString)
+                  ?? throw new CloudDataException("Некорректный адрес базы данных. Проверьте подключение.");
+
+        using var client = new FirebaseClient(url);
+        try
+        {
+            // У PutAsync в этой версии клиента нет параметра таймаута,
+            // поэтому ограничение задаётся отменой ожидания.
+            await client
+                .Child(RootNode)
+                .PutAsync(data)
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (TimeoutException ex)
+        {
+            throw new CloudDataException("Облачная база не ответила вовремя.", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new CloudDataException("Не удалось отправить данные в облако.", ex);
+        }
     }
 }

@@ -2,97 +2,124 @@
 
 Одностраничное приложение по макету `MainPage.xaml`: общий баланс, сетка недавних трат
 по три карточки в ряд и плавающая кнопка добавления. Реализовано на **.NET MAUI 10**
-с архитектурой **MVVM** и хранением данных в **JSON-файле**.
+с архитектурой **MVVM**, локальным JSON-кэшем и синхронизацией с
+**Firebase Realtime Database**.
 
-![Главный экран](docs/duty-main.png)
+![Главный экран](docs/duty-android.png)
 
-![Форма добавления траты](docs/duty-add-form.png)
+![Подключения к облачной базе](docs/duty-connections.png)
 
-![Android-эмулятор](docs/duty-android.png)
+![Управление категориями](docs/duty-categories.png)
 
 ## Возможности
 
 - Просмотр общего баланса и списка трат (сортировка от новых к старым).
-- Добавление траты: название, сумма, категория (10 категорий с иконками Font Awesome).
-- Редактирование траты по нажатию на карточку.
-- Удаление траты с подтверждением; сумма возвращается на баланс.
+- Добавление траты: название, сумма, категория.
+- Редактирование траты по нажатию на карточку, быстрое удаление с карточки.
+- Удаление одной траты (с подтверждением) и «удалить все записи» — баланс не меняется.
 - Редактирование общего баланса по кнопке-карандашу.
-- Обновление данных из JSON-файла по кнопке в шапке.
-- Валидация формы: пустое название, нулевая/некорректная сумма.
+- **Профили подключений** к облачной базе: список, создание, редактирование, удаление
+  и мгновенное переключение по нажатию на строку.
+- **Динамические категории**: создание, переименование, выбор цвета и иконки Font Awesome,
+  удаление с переназначением трат на категорию по умолчанию.
+- **Гибридная синхронизация**: приоритет облака с таймаутом 8 секунд,
+  локальный снимок как офлайн-фолбэк, плашка о том, на какой момент актуальны данные.
+- Валидация форм: пустое название, нулевая/некорректная сумма, некорректный URL базы.
 - Русское форматирование денег: `150 000 ₽`, `1 234,50 ₽`; ввод принимает `,`, `.` и пробелы.
-- Пустое состояние списка, индикатор загрузки, светлая тема оформления.
-- Транзакционное сохранение: при ошибке записи изменения не применяются к экрану.
+- Пустое состояние списка, индикаторы загрузки и синхронизации, светлая тема.
 
 ## Архитектура
 
 ```
 Duty/
 ├── Common/
-│   └── MoneyFormatter.cs          # формат и разбор сумм (ru-RU)
+│   └── MoneyFormatter.cs              # формат и разбор сумм (ru-RU)
 ├── Models/
-│   ├── DutyData.cs                # корень JSON
-│   ├── Expense.cs                 # трата
-│   ├── ExpenseDraft.cs            # данные из формы
-│   └── ExpenseCategory.cs         # справочник категорий
+│   ├── DutyData.cs                    # корень JSON и объект синхронизации
+│   ├── Expense.cs                     # трата
+│   ├── ExpenseDraft.cs                # данные из формы
+│   ├── ExpenseCategory.cs             # категория + палитры цвета/иконок
+│   └── DbConnectionProfile.cs         # профиль подключения к Firebase
 ├── Services/
 │   ├── IDutyDataService.cs
-│   ├── JsonDutyDataService.cs     # чтение/запись JSON, backup, карантин
-│   ├── IDialogService.cs
-│   └── DialogService.cs           # системные подтверждения
+│   ├── JsonDutyDataService.cs         # локальный снимок: атомарная запись, backup
+│   ├── ICloudDataService.cs
+│   ├── FirebaseDataService.cs         # облако с таймаутом на каждый запрос
+│   ├── IConnectionProfileService.cs
+│   ├── ConnectionProfileService.cs    # профили подключений в JSON
+│   ├── LocalStoragePaths.cs           # единые пути локального хранилища
+│   ├── IDialogService.cs / DialogService.cs
+│   └── CloudDataException.cs / DataStorageException.cs
 ├── ViewModels/
-│   ├── MainViewModel.cs           # состояние страницы и сценарии
-│   ├── ExpenseEditorViewModel.cs  # форма добавления/редактирования
-│   ├── BalanceEditorViewModel.cs  # форма баланса
-│   ├── ExpenseItemViewModel.cs    # карточка траты
-│   └── CategoryOptionViewModel.cs # чип категории
-├── MainPage.xaml                  # разметка из макета + оверлеи форм
-├── MainPage.xaml.cs               # только InitializeComponent + запуск загрузки
-├── MauiProgram.cs                 # DI, шрифты, обработчики
+│   ├── MainViewModel.cs               # состояние страницы и сценарии
+│   ├── ExpenseEditorViewModel.cs      # форма добавления/редактирования
+│   ├── BalanceEditorViewModel.cs      # форма баланса
+│   ├── ConnectionsViewModel.cs        # список и форма подключений
+│   ├── CategoriesViewModel.cs         # список и редактор категорий
+│   ├── ExpenseItemViewModel.cs        # карточка траты
+│   └── CategoryOptionViewModel.cs     # чип категории
+├── MainPage.xaml                      # разметка + оверлеи форм
+├── MauiProgram.cs                     # DI, шрифты, обработчики
 └── Resources/Fonts/fa-solid-900.ttf
 ```
 
 - **MVVM**: представление не содержит бизнес-логики; команды и состояние — во ViewModel.
 - **DI**: сервисы и ViewModel регистрируются в `MauiProgram`; `MainPage` получает `MainViewModel`.
 - **CommunityToolkit.Mvvm 8.4.2**: `[ObservableProperty]`, `[RelayCommand]`.
-- **Без навигации**: добавление, редактирование и баланс открываются поверх страницы,
-  поэтому приложение остаётся одностраничным.
+- **Без навигации**: формы открываются оверлеями поверх страницы.
+
+## Запуск и загрузка данных
+
+Порядок при старте (`MainViewModel.ReloadAsync`):
+
+1. Локальный снимок читается сразу и применяется к экрану — UI не ждёт сеть.
+2. Затем выполняется запрос в облако с таймаутом **8 секунд** (`CancellationTokenSource`).
+3. Если облако ответило — его данные заменяют экран, снимок перезаписывается локально,
+   показывается зелёная плашка «Данные загружены из облака».
+4. Если облако недоступно (нет сети, таймаут, неверный URL) — остаются локальные данные,
+   появляется оранжевая плашка и постоянная подпись под балансом
+   `Локальные данные на дд.ММ чч:мм`.
+5. Флаги `IsBusy`/`IsSyncing` сбрасываются в `finally`, поэтому «вечной загрузки» нет
+   даже при полностью недоступной сети.
+
+## Подключения к облаку
+
+- Хранятся в `duty-connections.json` рядом с данными приложения.
+- Первый запуск создаёт профиль «Основное» с адресом проекта по умолчанию.
+- Кнопка базы в шапке открывает список: в нём видны **только названия**,
+  активное помечено галочкой.
+- Нажатие на строку сразу переключает подключение: окно закрывается, выбор
+  сохраняется, данные перезагружаются из выбранной базы.
+- Карандаш в строке открывает форму с названием и URL; там же удаление профиля.
+- URL нормализуется (`https://…` без завершающего слэша), проверяется при сохранении.
+
+## Категории
+
+- Категории — часть `DutyData`, а значит сохраняются локально и уходят в облако
+  вместе с остальными данными (автоотправка после изменения).
+- Поля категории: `Key` (стабильный идентификатор), `Title`, `Icon` (код Font Awesome),
+  `HexColor`, `IsDefault`.
+- Редактор: название, палитра из 15 цветов и 22 иконок, живой предпросмотр.
+- Удаление защищено: последнюю категорию удалить нельзя, траты удаляемой категории
+  переназначаются на категорию по умолчанию (`IsDefault`).
+- Старые ключи категорий, которых больше нет в списке, при загрузке заменяются
+  на категорию по умолчанию.
 
 ## Хранение данных
 
-Файл JSON создаётся автоматически при первом запуске:
+- Windows: `%LOCALAPPDATA%\Duty\`
+- Android / iOS / Mac Catalyst: `FileSystem.AppDataDirectory`
 
-- Windows: `%LOCALAPPDATA%\Duty\duty-data.json`
-- Android / iOS / Mac Catalyst: `FileSystem.AppDataDirectory/duty-data.json`
+Файлы:
 
-Структура:
+- `duty-data.json` — локальный снимок `DutyData` (траты, баланс, категории, `updatedAt`);
+- `duty-data.json.bak` — предыдущая версия;
+- `duty-connections.json` — профили подключений и активный `id`.
 
-```json
-{
-  "schemaVersion": 1,
-  "totalBalance": 150000,
-  "expenses": [
-    {
-      "id": "00000000-0000-0000-0000-000000000000",
-      "name": "Продукты",
-      "amount": 2490,
-      "categoryKey": "groceries",
-      "createdAt": "2026-11-14T00:00:00+03:00"
-    }
-  ],
-  "updatedAt": "2026-11-14T00:00:00+03:00"
-}
-```
+`JsonDutyDataService` пишет через временный файл и `File.Move`, держит резервную копию,
+карантинит повреждённый JSON (`*.corrupt-<дата>`) и не экранирует кириллицу.
 
-Особенности `JsonDutyDataService`:
-
-- запись через временный файл и `File.Move` (атомарная замена);
-- предыдущая версия сохраняется в `duty-data.json.bak`;
-- повреждённый JSON перемещается в `duty-data.json.corrupt-<дата>`, затем читается backup;
-- чтение и запись защищены `SemaphoreSlim`;
-- кириллица в файле не экранируется (`UnsafeRelaxedJsonEscaping`), файл читаем глазами;
-- при первом запуске создаются демонстрационные данные (баланс 150 000 ₽ и 6 трат).
-
-Сброс к демо-данным: закрыть приложение, удалить `duty-data.json`, запустить снова.
+Сброс к демо-состоянию: закрыть приложение, удалить `duty-data.json`.
 
 ### Правила баланса
 
@@ -100,101 +127,42 @@ Duty/
 - Удаление траты возвращает её сумму на баланс.
 - Редактирование траты корректирует баланс на разницу старой и новой суммы.
 - Ручное изменение баланса задаёт текущую доступную сумму.
+- «Удалить все записи» очищает список, но баланс не трогает.
+- Отрицательный баланс разрешён и не «залипает» на нуле.
 
 ## Шрифт Font Awesome
 
-В макете используются иконки Font Awesome. В проект добавлен файл
-`Resources/Fonts/fa-solid-900.ttf` (Font Awesome 6 Free Solid) и регистрация в `MauiProgram.cs`:
+`Resources/Fonts/fa-solid-900.ttf` зарегистрирован в `MauiProgram.cs` как `FontAwesome`.
+Иконки задаются кодами: `&#xf1c0;` — база, `&#xf021;` — обновить,
+`&#xe09a;` — отправить, `&#xf304;` — карандаш, `&#xf067;` — плюс,
+`&#xf82a;` — удалить всё, `&#xf2ed;` — корзина, `&#xf00c;`/`&#xf071;` — статус.
 
-```csharp
-fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-fonts.AddFont("fa-solid-900.ttf", "FontAwesome");
-```
+Для unpackaged Windows-сборки алиас шрифта не применяется автоматически
+([dotnet/maui#9104](https://github.com/dotnet/maui/issues/9104)), поэтому в
+`MauiProgram.cs` есть Windows-only mapping обработчиков с прямым указанием
+`fa-solid-900.ttf#Font Awesome 6 Free`.
 
-Иконки в XAML задаются как обычный текст, например `&#xf021;` (обновление),
-`&#xf304;` (карандаш), `&#xf067;` (плюс). Категории используют коды `f07a`, `f7b6`,
-`f1b9`, `f015`, `f21e`, `f008`, `f553`, `f3cd`, `f19d`, `f141`.
+Лицензия Font Awesome Free — [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
 
-### Windows: исправление для unpackaged-приложения
+## Сборка
 
-У unpackaged-приложения Windows (в проекте стоит `WindowsPackageType=None`) MAUI
-не применяет alias `FontAwesome` к `Label`/`Button`, и PUA-символы рисуются
-пустыми квадратами. Это известная проблема MAUI для unpackaged-приложений
-([dotnet/maui#9104](https://github.com/dotnet/maui/issues/9104)); workaround
-взят из [Telerik KB](https://www.telerik.com/maui-ui/documentation/knowledge-base/troubleshooting-missing-fonts-unpackaged-deployment).
-В `MauiProgram.cs` добавлен Windows-only mapping обработчиков:
-
-```csharp
-LabelHandler.Mapper.AppendToMapping("DutyFontAwesomeLabel", (handler, view) =>
-{
-    if (view is Label label && UsesFontAwesome(label.FontFamily)
-        && handler.PlatformView is Microsoft.UI.Xaml.Controls.TextBlock platformLabel)
-    {
-        platformLabel.FontFamily =
-            new Microsoft.UI.Xaml.Media.FontFamily("fa-solid-900.ttf#Font Awesome 6 Free");
-    }
-});
-```
-
-Аналогичный mapping есть для `ButtonHandler`. WinUI получает файл шрифта
-напрямую в формате `font.ttf#FamilyName`, поэтому иконки работают и в
-unpackaged-сборке. Android в этом не нуждается — там alias работает штатно.
-
-Лицензия Font Awesome Free — в файле [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
-
-## Запуск
-
-Требования: .NET 10 SDK, рабочая нагрузка `.NET MAUI`.
+Требования: .NET 10 SDK, рабочая нагрузка `.NET MAUI`, JDK 17+ и Android SDK.
 
 ```powershell
-dotnet restore
-dotnet build Duty\Duty.csproj -f net10.0-windows10.0.19041.0
-```
+# Android
+dotnet build Duty\Duty.csproj -f net10.0-android
 
-Visual Studio: открыть `Duty.slnx`, выбрать профиль **Windows Machine** и запустить.
-
-### Android
-
-Нужны Android SDK и JDK 17+ (проверено на JDK 21 и Android SDK build-tools 36).
-В Visual Studio достаточно выбрать Android-эмулятор и нажать Run — студия сама
-развернёт сборки через fast deployment.
-
-Из командной строки:
-
-```powershell
-# Сборка, установка и запуск на подключённом эмуляторе
-dotnet build Duty\Duty.csproj -f net10.0-android -t:Install
-```
-
-Если нужен **автономный APK** для ручной установки через `adb install`, включите
-встраивание сборок, иначе Debug-APK с fast deployment не запустится:
-
-```powershell
+# Автономный APK для ручной установки
 dotnet build Duty\Duty.csproj -f net10.0-android -p:EmbedAssembliesIntoApk=true
 adb install -r Duty\bin\Debug\net10.0-android\com.companyname.duty-Signed.apk
 ```
 
-Проверено на эмуляторе `sdk_gphone64_x86_64`, Android 16 (API 36): карточки,
-цветные иконки категорий, шапка и FAB отображаются корректно.
+В текущей конфигурации `Duty.csproj` активна только цель `net10.0-android`;
+Windows, iOS и Mac Catalyst закомментированы.
 
-## Как пользоваться
+## Ограничения
 
-- **+** в правом нижнем углу — добавить трату.
-- Нажатие на карточку — изменить или удалить трату.
-- Карандаш рядом с балансом — изменить общий баланс.
-- Кнопка обновления в шапке — перечитать JSON-файл.
-
-## Примечания по реализации
-
-- `CollectionView.EmptyView` на Windows приводит к падению WinUI в MAUI 10,
-  поэтому пустое состояние показывается в заголовке коллекции и управляется
-  свойством `HasNoExpenses`.
-- Ширина контента ограничена 820 px и центрируется, чтобы на десктопе карточки
-  не растягивались; на телефоне сетка занимает всю ширину.
-- Для сохранения светлого макета тема принудительно выставлена в `AppTheme.Light`.
-- На Windows у `Entry` убрана стандартная рамка WinUI, чтобы поля выглядели
-  как скруглённые серые блоки из макета.
-- Если после обновления на Android виден старый интерфейс, удалите приложение
-  с эмулятора или очистите его данные и разверните заново: fast deployment
-  хранит сборки в каталоге приложения и может пережить переустановку APK.
+- В облачной базе нет авторизации: доступ определяется знанием URL.
+- Автоотправка выполняется в фоне; при отсутствии сети изменения остаются в локальном
+  снимке и уйдут в облако при следующем успешном действии.
+- Конкурирующие правки с нескольких устройств не сливаются: побеждает последняя запись.

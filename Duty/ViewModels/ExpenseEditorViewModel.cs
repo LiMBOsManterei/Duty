@@ -26,16 +26,43 @@ public partial class ExpenseEditorViewModel : ObservableObject
         _delete = delete;
         _dialogs = dialogs;
 
-        Categories = new ObservableCollection<CategoryOptionViewModel>(
-            ExpenseCategories.All.Select(category => new CategoryOptionViewModel(category, SelectCategory)));
+        Categories = new ObservableCollection<CategoryOptionViewModel>();
 
         Title = "Новая трата";
         Name = string.Empty;
         AmountText = string.Empty;
-        SelectedCategoryKey = ExpenseCategories.Default.Key;
+        SelectedCategoryKey = string.Empty;
     }
 
     public ObservableCollection<CategoryOptionViewModel> Categories { get; }
+
+    /// <summary>
+    /// Перестраивает чипы категорий из актуального списка данных,
+    /// сохраняя выбранную категорию, если она ещё существует.
+    /// </summary>
+    public void SyncCategories(IReadOnlyList<ExpenseCategory> categories, string? preferredKey = null)
+    {
+        var keyToSelect = preferredKey ?? SelectedCategoryKey;
+
+        Categories.Clear();
+        foreach (var category in categories)
+        {
+            Categories.Add(new CategoryOptionViewModel(category, SelectCategory));
+        }
+
+        var target = Categories.FirstOrDefault(option =>
+                         string.Equals(option.Key, keyToSelect, StringComparison.OrdinalIgnoreCase))
+                     ?? Categories.FirstOrDefault();
+
+        if (target is not null)
+        {
+            SelectCategory(target);
+        }
+        else
+        {
+            SelectedCategoryKey = string.Empty;
+        }
+    }
 
     [ObservableProperty]
     public partial bool IsOpen { get; set; }
@@ -74,7 +101,7 @@ public partial class ExpenseEditorViewModel : ObservableObject
         Name = string.Empty;
         AmountText = string.Empty;
         ErrorMessage = null;
-        SetSelectedCategory(ExpenseCategories.Default.Key);
+        SelectFirstCategory();
         IsOpen = true;
     }
 
@@ -119,6 +146,12 @@ public partial class ExpenseEditorViewModel : ObservableObject
         if (!MoneyFormatter.TryParse(AmountText, allowZero: false, out var amount))
         {
             ErrorMessage = "Введите сумму больше нуля, например 2 490.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(SelectedCategoryKey))
+        {
+            ErrorMessage = "Выберите категорию.";
             return;
         }
 
@@ -186,19 +219,24 @@ public partial class ExpenseEditorViewModel : ObservableObject
         }
     }
 
+    /// <summary>Выбирает категорию по ключу; если её нет — первую доступную.</summary>
     private void SetSelectedCategory(string key)
     {
-        var normalizedKey = ExpenseCategories.Get(key).Key;
-        SelectedCategoryKey = normalizedKey;
+        var target = Categories.FirstOrDefault(option =>
+                         string.Equals(option.Key, key, StringComparison.OrdinalIgnoreCase))
+                     ?? Categories.FirstOrDefault();
 
-        foreach (var category in Categories)
+        if (target is not null)
         {
-            category.IsSelected = string.Equals(
-                category.Key,
-                normalizedKey,
-                StringComparison.OrdinalIgnoreCase);
+            SelectCategory(target);
+        }
+        else
+        {
+            SelectedCategoryKey = string.Empty;
         }
     }
+
+    private void SelectFirstCategory() => SetSelectedCategory(SelectedCategoryKey);
 
     partial void OnNameChanged(string value)
     {

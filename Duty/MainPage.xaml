@@ -15,6 +15,7 @@
         <Color x:Key="FieldSurface">#F2F2F7</Color>
         <Color x:Key="Accent">#1C1C1E</Color>
         <Color x:Key="Danger">#FF3B30</Color>
+        <Color x:Key="Warning">#FF9500</Color>
         <Color x:Key="Hairline">#E5E5EA</Color>
 
         <Style x:Key="FormLabel" TargetType="Label">
@@ -92,6 +93,8 @@
             <Setter Property="HeightRequest" Value="44" />
             <Setter Property="CornerRadius" Value="22" />
             <Setter Property="Padding" Value="0" />
+            <Setter Property="MinimumWidthRequest" Value="0" />
+            <Setter Property="MinimumHeightRequest" Value="0" />
         </Style>
 
         <Style x:Key="CloseButton" TargetType="Button">
@@ -103,14 +106,38 @@
             <Setter Property="HeightRequest" Value="36" />
             <Setter Property="CornerRadius" Value="18" />
             <Setter Property="Padding" Value="0" />
+            <Setter Property="MinimumWidthRequest" Value="0" />
+            <Setter Property="MinimumHeightRequest" Value="0" />
+        </Style>
+
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="FontAwesome" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="TextColor" Value="{StaticResource Ink}" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="WidthRequest" Value="36" />
+            <Setter Property="HeightRequest" Value="36" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinimumWidthRequest" Value="0" />
+            <Setter Property="MinimumHeightRequest" Value="0" />
+        </Style>
+
+        <Style x:Key="SheetBorder" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="White" />
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 24" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="HorizontalOptions" Value="Center" />
+            <Setter Property="VerticalOptions" Value="Center" />
+            <Setter Property="MaximumWidthRequest" Value="520" />
+            <Setter Property="Margin" Value="20" />
         </Style>
     </ContentPage.Resources>
 
-   
-
     <Grid>
 
-        <!-- Основной скролл страницы: хедер + сетка трат -->
+        <!-- Основной список: хедер + сетка трат -->
         <CollectionView ItemsSource="{Binding Expenses}"
                         SelectionMode="None"
                         VerticalScrollBarVisibility="Never"
@@ -127,47 +154,43 @@
             </CollectionView.ItemsLayout>
 
             <CollectionView.Header>
-                <VerticalStackLayout Padding="0,40,0,16" Spacing="24">
+                <VerticalStackLayout Padding="0,40,0,16" Spacing="20">
 
-                    <!-- ШАПКА: Итого + Обновить + спинер + отпровить -->
+                    <!-- ШАПКА: Итого + подключение + обновить + отправить -->
                     <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
                         <Label Text="Итого"
-                               
-                               FontSize="32"    
+                               FontSize="32"
                                FontAttributes="Bold"
                                TextColor="#1A1A1A"
                                VerticalOptions="Center" />
 
-                        
-                        
-                        <Grid Grid.Column="1" Grid.Row="0" ColumnDefinitions="Auto, Auto, Auto">
-                            
-                                <Button Grid.Column="0"
-                                Text="&#xf021;"
-                                Style="{StaticResource RefreshButton}"
-                                Command="{Binding RefreshCommand}"
-                                IsEnabled="{Binding IsNotBusy}"
-                                SemanticProperties.Description="Обновить данные" />
-                            <Button Grid.Column="1"
-                                Text="&#xe09a;"
-                                Style="{StaticResource RefreshButton}"
-                                Command="{Binding SendDbToFirebaseCommand}"
-                                IsEnabled="{Binding IsNotBusy}"
-                                SemanticProperties.Description="отправить данные" />
+                        <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                            <Button Text="&#xf1c0;"
+                                    Style="{StaticResource RefreshButton}"
+                                    Command="{Binding Connections.OpenCommand}"
+                                    IsEnabled="{Binding IsNotBusy}"
+                                    SemanticProperties.Description="Подключения к базе" />
 
-                            <ActivityIndicator Grid.Column="2"
-                                 IsRunning="{Binding IsSyncing}"
-                                 IsVisible="{Binding IsSyncing}"
-                                 Color="#1A1A1A"
-                                 WidthRequest="24"
-                                 HeightRequest="24"
-                                 VerticalOptions="Center"
-                                 Margin="0,0,8,0" />
-                            
+                            <Button Text="&#xf021;"
+                                    Style="{StaticResource RefreshButton}"
+                                    Command="{Binding RefreshCommand}"
+                                    IsEnabled="{Binding IsNotBusy}"
+                                    SemanticProperties.Description="Обновить данные" />
 
-                        </Grid>
-                        
-                        
+                            <Button Text="&#xe09a;"
+                                    Style="{StaticResource RefreshButton}"
+                                    Command="{Binding SendDbToFirebaseCommand}"
+                                    IsEnabled="{Binding IsNotBusy}"
+                                    SemanticProperties.Description="Отправить данные в облако" />
+
+                            <ActivityIndicator IsRunning="{Binding IsSyncing}"
+                                               IsVisible="{Binding IsSyncing}"
+                                               Color="#1A1A1A"
+                                               WidthRequest="24"
+                                               HeightRequest="24"
+                                               VerticalOptions="Center"
+                                               Margin="4,0,0,0" />
+                        </HorizontalStackLayout>
                     </Grid>
 
                     <!-- ОБЩИЙ БАЛАНС -->
@@ -178,6 +201,13 @@
                                    FontSize="32"
                                    FontAttributes="Bold"
                                    TextColor="#1A1A1A" />
+                            <Label Text="{Binding ActiveConnectionText}"
+                                   FontSize="12"
+                                   TextColor="#8E8E93" />
+                            <Label Text="{Binding LocalModeText}"
+                                   IsVisible="{Binding ShowLocalModeHint}"
+                                   FontSize="12"
+                                   TextColor="#FF9500" />
                         </VerticalStackLayout>
 
                         <!-- Кнопка редактирования баланса -->
@@ -201,16 +231,14 @@
                         </Border>
                     </Grid>
 
-                    <!-- НЕДАВНИЕ ТРАТЫ -->
-                    
-
-                        <Grid ColumnDefinitions="*, auto">
-                            <Label Text="Недавние траты"
-                                FontSize="18"
-                                FontAttributes="Bold"
-                                TextColor="#1A1A1A"
-                                Margin="0,10,0,0" 
-                                Grid.Column="0"  />
+                    <!-- НЕДАВНИЕ ТРАТЫ + удалить все -->
+                    <Grid ColumnDefinitions="*, auto">
+                        <Label Text="Недавние траты"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A"
+                               Margin="0,10,0,0"
+                               Grid.Column="0" />
 
                         <Button Grid.Column="1"
                                 Text="&#xf82a;"
@@ -226,12 +254,8 @@
                                 HorizontalOptions="End"
                                 VerticalOptions="Center"
                                 Command="{Binding AllDeleteCommand}"
-                                 />
-
-
+                                SemanticProperties.Description="Удалить все записи" />
                     </Grid>
-                    
-                    
 
                     <!-- Пустое состояние. EmptyView у CollectionView на Windows
                          приводит к падению WinUI, поэтому показываем его в хедере. -->
@@ -267,9 +291,7 @@
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="vm:ExpenseItemViewModel">
-
-                    
-                        <Border BackgroundColor="#F0F1F5"
+                    <Border BackgroundColor="#F0F1F5"
                             StrokeThickness="0"
                             StrokeShape="RoundRectangle 18"
                             Padding="16"
@@ -278,58 +300,41 @@
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding EditCommand}" />
                         </Border.GestureRecognizers>
-                        
-                        <VerticalStackLayout Spacing="12">
-                            <!-- Белый круг с иконкой -->
 
+                        <VerticalStackLayout Spacing="12">
                             <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
                                 <Border Grid.Column="0"
-                            BackgroundColor="White"
-                            StrokeThickness="0"
-                            StrokeShape="RoundRectangle 16"
-                            WidthRequest="32"
-                            HeightRequest="32"
-                            HorizontalOptions="Start">
+                                        BackgroundColor="White"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 16"
+                                        WidthRequest="32"
+                                        HeightRequest="32"
+                                        HorizontalOptions="Start">
                                     <Label Text="{Binding Icon}"
-                               FontFamily="FontAwesome"
-                               FontSize="14"
-                               TextColor="{Binding IconColor}"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center" />
+                                           FontFamily="FontAwesome"
+                                           FontSize="14"
+                                           TextColor="{Binding IconColor}"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
                                 </Border>
 
                                 <!-- Кнопка удаления траты -->
                                 <Button Grid.Column="1"
-                            Text="&#xf2ed;"
-                            FontFamily="FontAwesome"
-                            FontSize="18"
-                            TextColor="#FF3B30"
-                            BackgroundColor="Transparent"
-                            Padding="0"
-                            MinimumWidthRequest="0"
-                            MinimumHeightRequest="0"
-                            WidthRequest="28"
-                            HeightRequest="28"
-                            HorizontalOptions="End"
-                            VerticalOptions="Center"
-                            Command="{Binding FastDeleteCommand}"
-                             />
+                                        Text="&#xf2ed;"
+                                        FontFamily="FontAwesome"
+                                        FontSize="18"
+                                        TextColor="#FF3B30"
+                                        BackgroundColor="Transparent"
+                                        Padding="0"
+                                        MinimumWidthRequest="0"
+                                        MinimumHeightRequest="0"
+                                        WidthRequest="28"
+                                        HeightRequest="28"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Center"
+                                        Command="{Binding FastDeleteCommand}"
+                                        SemanticProperties.Description="Удалить трату" />
                             </Grid>
-
-
-                            <!--<Border BackgroundColor="White"
-                                    StrokeThickness="0"
-                                    StrokeShape="RoundRectangle 16"
-                                    WidthRequest="32"
-                                    HeightRequest="32"
-                                    HorizontalOptions="Start">
-                                <Label Text="{Binding Icon}"
-                                       FontFamily="FontAwesome"
-                                       FontSize="14"
-                                       TextColor="{Binding IconColor}"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center" />
-                            </Border>-->
 
                             <Label Text="{Binding Name}"
                                    FontSize="12"
@@ -345,7 +350,6 @@
                                    LineBreakMode="TailTruncation" />
                         </VerticalStackLayout>
                     </Border>
-                    
                 </DataTemplate>
             </CollectionView.ItemTemplate>
 
@@ -443,7 +447,19 @@
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="8">
-                            <Label Text="Категория" Style="{StaticResource FormLabel}" />
+                            <Grid ColumnDefinitions="*, Auto">
+                                <Label Text="Категория"
+                                       Style="{StaticResource FormLabel}"
+                                       VerticalOptions="Center" />
+                                <Button Grid.Column="1"
+                                        Text="&#xf013;"
+                                        Style="{StaticResource IconButton}"
+                                        FontSize="15"
+                                        TextColor="#8E8E93"
+                                        Command="{Binding Categories.OpenCommand}"
+                                        SemanticProperties.Description="Управление категориями" />
+                            </Grid>
+
                             <FlexLayout Direction="Row"
                                         Wrap="Wrap"
                                         AlignItems="Center"
@@ -461,7 +477,6 @@
                                                 <TapGestureRecognizer Command="{Binding SelectCommand}" />
                                             </Border.GestureRecognizers>
                                             <HorizontalStackLayout Spacing="6">
-                                                
                                                 <Label Text="{Binding Icon}"
                                                        FontFamily="FontAwesome"
                                                        FontSize="12"
@@ -574,6 +589,364 @@
             </Border>
         </Grid>
 
+        <!-- СПИСОК ПОДКЛЮЧЕНИЙ -->
+        <Grid IsVisible="{Binding Connections.IsOpen}" ZIndex="22">
+            <BoxView BackgroundColor="#66000000">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding Connections.CloseCommand}" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <Border Style="{StaticResource SheetBorder}">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Offset="0,8" Radius="28" Opacity="0.2" />
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="16">
+                    <Grid ColumnDefinitions="*, Auto, Auto">
+                        <Label Text="Подключения" Style="{StaticResource SheetTitle}" />
+
+                        <Button Grid.Column="1"
+                                Text="&#xf067;"
+                                Style="{StaticResource IconButton}"
+                                TextColor="#1A1A1A"
+                                Command="{Binding Connections.AddCommand}"
+                                SemanticProperties.Description="Добавить подключение" />
+
+                        <Button Grid.Column="2"
+                                Text="&#xf00d;"
+                                Style="{StaticResource CloseButton}"
+                                Command="{Binding Connections.CloseCommand}"
+                                SemanticProperties.Description="Закрыть список подключений" />
+                    </Grid>
+
+                    <Label Text="Нажмите на название, чтобы переключиться на эту базу."
+                           Style="{StaticResource Hint}" />
+
+                    <ScrollView MaximumHeightRequest="360" VerticalScrollBarVisibility="Never">
+                        <VerticalStackLayout Spacing="8"
+                                             BindableLayout.ItemsSource="{Binding Connections.Items}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ConnectionListItemViewModel">
+                                    <Border BackgroundColor="#F0F1F5"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 16"
+                                            Padding="14,10">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding ActivateCommand}" />
+                                        </Border.GestureRecognizers>
+
+                                        <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8">
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="15"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1A1A1A"
+                                                   LineBreakMode="TailTruncation"
+                                                   VerticalOptions="Center" />
+
+                                            <Label Grid.Column="1"
+                                                   Text="&#xf00c;"
+                                                   FontFamily="FontAwesome"
+                                                   FontSize="14"
+                                                   TextColor="#34C759"
+                                                   IsVisible="{Binding IsActive}"
+                                                   VerticalOptions="Center" />
+
+                                            <Button Grid.Column="2"
+                                                    Text="&#xf304;"
+                                                    Style="{StaticResource IconButton}"
+                                                    FontSize="15"
+                                                    TextColor="#8E8E93"
+                                                    Command="{Binding EditCommand}"
+                                                    SemanticProperties.Description="Изменить подключение" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- ФОРМА ПОДКЛЮЧЕНИЯ -->
+        <Grid IsVisible="{Binding Connections.IsEditorOpen}" ZIndex="23">
+            <BoxView BackgroundColor="#66000000">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding Connections.CloseEditorCommand}" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <Border Style="{StaticResource SheetBorder}">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Offset="0,8" Radius="28" Opacity="0.2" />
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="16">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <Label Text="{Binding Connections.EditorTitle}"
+                               Style="{StaticResource SheetTitle}" />
+                        <Button Grid.Column="1"
+                                Text="&#xf00d;"
+                                Style="{StaticResource CloseButton}"
+                                Command="{Binding Connections.CloseEditorCommand}"
+                                SemanticProperties.Description="Закрыть форму подключения" />
+                    </Grid>
+
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Название" Style="{StaticResource FormLabel}" />
+                        <Border Style="{StaticResource InputBorder}">
+                            <Entry Text="{Binding Connections.EditorName}"
+                                   Placeholder="Например, Основная база"
+                                   MaxLength="60"
+                                   Style="{StaticResource InputEntry}" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Адрес базы (Realtime Database URL)" Style="{StaticResource FormLabel}" />
+                        <Border Style="{StaticResource InputBorder}">
+                            <Entry Text="{Binding Connections.EditorUrl}"
+                                   Placeholder="https://project-default-rtdb.firebaseio.com/"
+                                   Keyboard="Url"
+                                   MaxLength="200"
+                                   Style="{StaticResource InputEntry}" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <Label Text="{Binding Connections.EditorError}"
+                           IsVisible="{Binding Connections.HasEditorError}"
+                           FontSize="13"
+                           TextColor="#FF3B30"
+                           LineBreakMode="WordWrap" />
+
+                    <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                        <Button Text="Отмена"
+                                Style="{StaticResource GhostButton}"
+                                Command="{Binding Connections.CloseEditorCommand}" />
+                        <Button Grid.Column="1"
+                                Text="Сохранить"
+                                Style="{StaticResource PrimaryButton}"
+                                Command="{Binding Connections.SaveCommand}"
+                                IsEnabled="{Binding Connections.IsNotBusy}" />
+                    </Grid>
+
+                    <Button Text="Удалить подключение"
+                            Style="{StaticResource DangerTextButton}"
+                            Command="{Binding Connections.DeleteCommand}"
+                            IsVisible="{Binding Connections.IsEditing}" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- СПИСОК КАТЕГОРИЙ -->
+        <Grid IsVisible="{Binding Categories.IsOpen}" ZIndex="24">
+            <BoxView BackgroundColor="#66000000">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding Categories.CloseCommand}" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <Border Style="{StaticResource SheetBorder}">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Offset="0,8" Radius="28" Opacity="0.2" />
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="16">
+                    <Grid ColumnDefinitions="*, Auto, Auto">
+                        <Label Text="Категории" Style="{StaticResource SheetTitle}" />
+
+                        <Button Grid.Column="1"
+                                Text="&#xf067;"
+                                Style="{StaticResource IconButton}"
+                                TextColor="#1A1A1A"
+                                Command="{Binding Categories.AddCategoryCommand}"
+                                SemanticProperties.Description="Добавить категорию" />
+
+                        <Button Grid.Column="2"
+                                Text="&#xf00d;"
+                                Style="{StaticResource CloseButton}"
+                                Command="{Binding Categories.CloseCommand}"
+                                SemanticProperties.Description="Закрыть список категорий" />
+                    </Grid>
+
+                    <ScrollView MaximumHeightRequest="380" VerticalScrollBarVisibility="Never">
+                        <VerticalStackLayout Spacing="8"
+                                             BindableLayout.ItemsSource="{Binding Categories.Items}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:CategoryItemViewModel">
+                                    <Border BackgroundColor="#F0F1F5"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 16"
+                                            Padding="12,8">
+                                        <Grid ColumnDefinitions="Auto, *, Auto, Auto" ColumnSpacing="10">
+                                            <Border Grid.Column="0"
+                                                    BackgroundColor="White"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 12"
+                                                    WidthRequest="32"
+                                                    HeightRequest="32"
+                                                    VerticalOptions="Center">
+                                                <Label Text="{Binding Icon}"
+                                                       FontFamily="FontAwesome"
+                                                       FontSize="14"
+                                                       TextColor="{Binding IconColor}"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center" />
+                                            </Border>
+
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding Title}"
+                                                   FontSize="15"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1A1A1A"
+                                                   LineBreakMode="TailTruncation"
+                                                   VerticalOptions="Center" />
+
+                                            <Button Grid.Column="2"
+                                                    Text="&#xf304;"
+                                                    Style="{StaticResource IconButton}"
+                                                    FontSize="15"
+                                                    TextColor="#8E8E93"
+                                                    Command="{Binding EditCommand}"
+                                                    SemanticProperties.Description="Изменить категорию" />
+
+                                            <Button Grid.Column="3"
+                                                    Text="&#xf2ed;"
+                                                    Style="{StaticResource IconButton}"
+                                                    FontSize="15"
+                                                    TextColor="#FF3B30"
+                                                    Command="{Binding DeleteCommand}"
+                                                    SemanticProperties.Description="Удалить категорию" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- ФОРМА КАТЕГОРИИ -->
+        <Grid IsVisible="{Binding Categories.IsEditorOpen}" ZIndex="25">
+            <BoxView BackgroundColor="#66000000">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding Categories.CloseEditorCommand}" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <Border Style="{StaticResource SheetBorder}">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Offset="0,8" Radius="28" Opacity="0.2" />
+                </Border.Shadow>
+
+                <ScrollView MaximumHeightRequest="560" VerticalScrollBarVisibility="Never">
+                    <VerticalStackLayout Spacing="16">
+                        <Grid ColumnDefinitions="*, Auto">
+                            <Label Text="{Binding Categories.EditorTitle}"
+                                   Style="{StaticResource SheetTitle}" />
+                            <Button Grid.Column="1"
+                                    Text="&#xf00d;"
+                                    Style="{StaticResource CloseButton}"
+                                    Command="{Binding Categories.CloseEditorCommand}"
+                                    SemanticProperties.Description="Закрыть форму категории" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto, *" ColumnSpacing="14">
+                            <Border Grid.Column="0"
+                                    BackgroundColor="{Binding Categories.PreviewColor}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 18"
+                                    WidthRequest="56"
+                                    HeightRequest="56"
+                                    VerticalOptions="Center">
+                                <Label Text="{Binding Categories.SelectedIcon}"
+                                       FontFamily="FontAwesome"
+                                       FontSize="22"
+                                       TextColor="White"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="8">
+                                <Label Text="Название" Style="{StaticResource FormLabel}" />
+                                <Border Style="{StaticResource InputBorder}">
+                                    <Entry Text="{Binding Categories.EditorName}"
+                                           Placeholder="Например, Кафе"
+                                           MaxLength="40"
+                                           Style="{StaticResource InputEntry}" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Цвет" Style="{StaticResource FormLabel}" />
+                            <FlexLayout Direction="Row"
+                                        Wrap="Wrap"
+                                        AlignItems="Center"
+                                        BindableLayout.ItemsSource="{Binding Categories.PaletteColors}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ColorOptionViewModel">
+                                        <Border BackgroundColor="{Binding Swatch}"
+                                                Stroke="{Binding BorderBrush}"
+                                                StrokeThickness="{Binding BorderWidth}"
+                                                StrokeShape="RoundRectangle 17"
+                                                WidthRequest="34"
+                                                HeightRequest="34"
+                                                Margin="0,0,8,8">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding SelectCommand}" />
+                                            </Border.GestureRecognizers>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </FlexLayout>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Иконка" Style="{StaticResource FormLabel}" />
+                            <FlexLayout Direction="Row"
+                                        Wrap="Wrap"
+                                        AlignItems="Center"
+                                        BindableLayout.ItemsSource="{Binding Categories.PaletteIcons}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:IconOptionViewModel">
+                                        <Border BackgroundColor="{Binding BackgroundColor}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 12"
+                                                WidthRequest="42"
+                                                HeightRequest="42"
+                                                Margin="0,0,8,8">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding SelectCommand}" />
+                                            </Border.GestureRecognizers>
+                                            <Label Text="{Binding Icon}"
+                                                   FontFamily="FontAwesome"
+                                                   FontSize="16"
+                                                   TextColor="{Binding ForegroundColor}"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center" />
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </FlexLayout>
+                        </VerticalStackLayout>
+
+                        <Label Text="{Binding Categories.EditorError}"
+                               IsVisible="{Binding Categories.HasEditorError}"
+                               FontSize="13"
+                               TextColor="#FF3B30"
+                               LineBreakMode="WordWrap" />
+
+                        <Button Text="Сохранить"
+                                Style="{StaticResource PrimaryButton}"
+                                Command="{Binding Categories.SaveEditorCommand}" />
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Border>
+        </Grid>
+
         <!-- ЗАГРУЗКА -->
         <Grid IsVisible="{Binding IsBusy}"
               BackgroundColor="#E6F7F8FA"
@@ -591,25 +964,28 @@
                        HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
         </Grid>
+
+        <!-- СТАТУСНАЯ ПЛАШКА -->
         <Border IsVisible="{Binding IsSyncStatusVisible}"
-        BackgroundColor="{Binding SyncStatusColor}"
-        StrokeThickness="0"
-        StrokeShape="RoundRectangle 20"
-        Padding="16,10"
-        HorizontalOptions="Center"
-        VerticalOptions="End"
-        Margin="0,0,0,32">
+                BackgroundColor="{Binding SyncStatusColor}"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 20"
+                Padding="16,10"
+                HorizontalOptions="Center"
+                VerticalOptions="End"
+                Margin="0,0,0,32"
+                ZIndex="31">
             <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                <Label Text="&#xf00c;"
-               FontFamily="FontAwesome"
-               TextColor="White"
-               FontSize="14"
-               VerticalOptions="Center" />
+                <Label Text="{Binding SyncStatusIcon}"
+                       FontFamily="FontAwesome"
+                       TextColor="White"
+                       FontSize="14"
+                       VerticalOptions="Center" />
                 <Label Text="{Binding SyncStatusText}"
-               TextColor="White"
-               FontSize="14"
-               FontAttributes="Bold"
-               VerticalOptions="Center" />
+                       TextColor="White"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center" />
             </HorizontalStackLayout>
         </Border>
     </Grid>

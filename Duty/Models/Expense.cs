@@ -9,7 +9,8 @@ public sealed class Expense
 
     public decimal Amount { get; set; }
 
-    public string CategoryKey { get; set; } = ExpenseCategories.Default.Key;
+    /// <summary>Ключ категории. Неизвестный ключ при загрузке заменится на категорию по умолчанию.</summary>
+    public string CategoryKey { get; set; } = "other";
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
 

@@ -9,21 +9,17 @@ namespace Duty.ViewModels;
 /// <summary>Элемент сетки «Недавние траты».</summary>
 public sealed class ExpenseItemViewModel
 {
-    public ExpenseItemViewModel(Expense expense, Action<ExpenseItemViewModel> edit)
+    public ExpenseItemViewModel(
+        Expense expense,
+        ExpenseCategory category,
+        Action<ExpenseItemViewModel> edit,
+        Action<ExpenseItemViewModel> delete)
     {
         Model = expense;
-        Category = ExpenseCategories.Get(expense.CategoryKey);
-        EditCommand = new RelayCommand(() => edit(this));
-        FastDeleteCommand = new RelayCommand(() => edit(this));
-    }
-    public ExpenseItemViewModel(Expense expense, Action<ExpenseItemViewModel> edit, Action<ExpenseItemViewModel> delete)
-    {
-        Model = expense;
-        Category = ExpenseCategories.Get(expense.CategoryKey);
+        Category = category;
         EditCommand = new RelayCommand(() => edit(this));
         FastDeleteCommand = new RelayCommand(() => delete(this));
     }
-
 
     public Expense Model { get; }
 
@@ -40,7 +36,7 @@ public sealed class ExpenseItemViewModel
     public string CategoryTitle => Category.Title;
 
     public ICommand EditCommand { get; }
-    
+
     public ICommand FastDeleteCommand { get; }
 
     public string AccessibilityDescription =>
